@@ -193,41 +193,30 @@ diff_quat = max(sum(q2(:, 1:1199) - rb_q(:, 1:1199)));
 % Uncomment once disp = (x, y, z) is calculated 
 %calculating xyz
 d_12 = zeros(2401, 3);
-for i = 1:1199
-    phi = 2*acos(opti_change(4, i));
-    w = [opti_change(1, i)/sin(phi/2), opti_change(2, i)/sin(phi/2), opti_change(3, i)/sin(phi/2)];
-    x = w(1);
-    y = w(2);
-    z = w(3);
-    a = opti_change(4, i);
-    b = opti_change(1, i);
-    c = opti_change(2, i);
-    d = opti_change(3, i);
+for i = 1:2399
+    a = opti_change(4, i+1);
+    b = opti_change(1, i+1);
+    c = opti_change(2, i+1);
+    d = opti_change(3, i+1);
     R = [[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d + a*c)];...
         [2*(b*c+a*d), a*a-b*b+c*c-d*d, 2*(c*d-a*b)];...
         [2*(b*d-a*c), 2*(c*d+a*b), a*a-b*b-c*c+d*d]];
-    R_12 = [[cos(phi) + x^2*(1-cos(phi)), x*y*(1-cos(phi)- z*sin(phi)), x*z*(1-cos(phi)) + y*sin(phi)];...
-        [y*x*(1-cos(phi)) + z*sin(phi), cos(phi) + y^2*(1-cos(phi)), y*z*(1-cos(phi)) - x*sin(phi)];...
-        [z*x*(1-cos(phi)) - y*sin(phi), z*y*(1-cos(phi)) + x*sin(phi), cos(phi) + z^2*(1-cos(phi))]];
+%     R_12 = [[cos(phi) + x^2*(1-cos(phi)), x*y*(1-cos(phi)- z*sin(phi)), x*z*(1-cos(phi)) + y*sin(phi)];...
+%         [y*x*(1-cos(phi)) + z*sin(phi), cos(phi) + y^2*(1-cos(phi)), y*z*(1-cos(phi)) - x*sin(phi)];...
+%         [z*x*(1-cos(phi)) - y*sin(phi), z*y*(1-cos(phi)) + x*sin(phi), cos(phi) + z^2*(1-cos(phi))]];
     d_12(i, :) = Q_cent(i, :)' - R*P_cent(i, :)';
 end
 
 pos_first = zeros(2401, 3);
 pos_first(1, :) = reshape(rb_xyz(:, 1),[1, 3]);
-for i = 1:1199
-    pos_first(i+1, :) = pos_first(i, :) + (d_12(i+1, :) - d_12(i, :));
+for i = 1:2400
+    pos_first(i+1, :) = pos_first(i, :) + (d_12(i+1, :) - d_12(i,:));
 end
 
-% rb_trans = zeros(3, 2401);
-% for i = 2:1200
-%     rb_trans(:, i-1) = rb_xyz(:, i) - rb_xyz(:, i-1);
-% end
-
-disp = d_12;
 figure
  plot(time,rb_xyz)
  hold on;
- plot(time, disp)
+ plot(time, pos_first)
  xlabel('Time(s)')
  ylabel('World Position')
  legend('x','y','z', 'x_{est}', 'y_{est}', 'z_{est}')
@@ -236,7 +225,7 @@ figure
  figure
  plot3(rb_xyz(1,:),rb_xyz(2,:),rb_xyz(3,:))
  hold on
- plot3(pos_first(1:1199,1),pos_first(1:1199,2),pos_first(1:1199,3))
+ plot3(d_12(:,1),d_12(:,2),d_12(:,3))
  axis equal
  grid on
 
