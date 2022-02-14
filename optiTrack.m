@@ -1,6 +1,7 @@
 % Read OptiTrack File
 clear; close all; clc;
 filename = 'me133a_6nov_wand_250_270m.csv';
+%filename = 'ME234Lab1.csv';
 fileraw = csvread(filename,7,0);
 time = fileraw(:,2);
 rb_q = fileraw(:,3:6)';
@@ -96,7 +97,7 @@ end
 
 
 %% Plots
-start = 1201;
+start = 1;
 stop = 2400;
 figure
 subplot(2,2,1)
@@ -105,7 +106,7 @@ hold on;
 plot(q(1,start:stop))
 ylabel('q_0 (column W)')
 xlabel('Frame Index')
-%legend('OptiTrack', 'Estimated')
+legend('OptiTrack', 'Estimated')
 
 subplot(2,2,2)
 plot(opti_change(2,start:stop), '--', 'LineWidth', 1.4)
@@ -136,8 +137,6 @@ sgtitle('Change in orientation between adjacent pairs of frames')
 diff = max(sum(q(:, 1:1199) - opti_change(:, 1:1199)));
 
 %%
-start = 1201;
-stop = 2400;
 figure
 subplot(2,2,1)
 plot(rb_q(1,start:stop), '--', 'LineWidth', 1.4)
@@ -192,41 +191,49 @@ diff_quat = max(sum(q2(:, 1:1199) - rb_q(:, 1:1199)));
 %% x,y,z
 % Uncomment once disp = (x, y, z) is calculated 
 %calculating xyz
-d_12 = zeros(2401, 3);
-for i = 1:2399
-    a = opti_change(4, i+1);
-    b = opti_change(1, i+1);
-    c = opti_change(2, i+1);
-    d = opti_change(3, i+1);
+disp = zeros(3,length(marker{1}));
+disp(:,1) = rb_xyz(:,1);
+for i = 1:length(marker{1})-1
+    % compute R from q
+    a = q(1, i);
+    b = q(2, i);
+    c = q(3, i);
+    d = q(4, i);
     R = [[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d + a*c)];...
         [2*(b*c+a*d), a*a-b*b+c*c-d*d, 2*(c*d-a*b)];...
         [2*(b*d-a*c), 2*(c*d+a*b), a*a-b*b-c*c+d*d]];
-%     R_12 = [[cos(phi) + x^2*(1-cos(phi)), x*y*(1-cos(phi)- z*sin(phi)), x*z*(1-cos(phi)) + y*sin(phi)];...
-%         [y*x*(1-cos(phi)) + z*sin(phi), cos(phi) + y^2*(1-cos(phi)), y*z*(1-cos(phi)) - x*sin(phi)];...
-%         [z*x*(1-cos(phi)) - y*sin(phi), z*y*(1-cos(phi)) + x*sin(phi), cos(phi) + z^2*(1-cos(phi))]];
-    d_12(i, :) = Q_cent(i, :)' - R*P_cent(i, :)';
-end
-
-pos_first = zeros(2401, 3);
-pos_first(1, :) = reshape(rb_xyz(:, 1),[1, 3]);
-for i = 1:2400
-    pos_first(i+1, :) = pos_first(i, :) + (d_12(i+1, :) - d_12(i,:));
+    
+    a = q2(1, i);
+    b = q2(2, i);
+    c = q2(3, i);
+    d = q2(4, i);
+    R2 = [[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d + a*c)];...
+        [2*(b*c+a*d), a*a-b*b+c*c-d*d, 2*(c*d-a*b)];...
+        [2*(b*d-a*c), 2*(c*d+a*b), a*a-b*b-c*c+d*d]];
+   
+   % use that to get a displacement between frames
+   d12 = Q_cent(i,:)' - R*P_cent(i,:)';
+   % add the displacement to the last frame value
+   disp(:,i+1) = R*disp(:,i) + d12;
+    
 end
 
 figure
  plot(time,rb_xyz)
  hold on;
- plot(time, pos_first)
+ plot(time, disp,'--','LineWidth',1.4)
  xlabel('Time(s)')
  ylabel('World Position')
  legend('x','y','z', 'x_{est}', 'y_{est}', 'z_{est}')
 % 
  % 3D Path
- figure
- plot3(rb_xyz(1,:),rb_xyz(2,:),rb_xyz(3,:))
- hold on
- plot3(d_12(:,1),d_12(:,2),d_12(:,3))
- axis equal
- grid on
+figure
+plot3(rb_xyz(1,:),rb_xyz(2,:),rb_xyz(3,:),'--','LineWidth',1.4)
+hold on
+plot3(disp(1,:),disp(2,:),disp(3,:))
+axis equal
+grid on
+legend('Opti-Track', 'Calculated','Location','s')
+title("3D Position of Body");
 
 
